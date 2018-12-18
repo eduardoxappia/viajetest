@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <apikit:config name="Router" raml="api2.raml" consoleEnabled="true" consolePath="console" keepRamlBaseUri="false" doc:name="Router">
+        <apikit:flow-mapping resource="/viaje" action="get" flow-ref="obtenerViaje"/>
+        <apikit:flow-mapping resource="/viaje" action="post" content-type="application/json" flow-ref="agregaViaje"/>
+        <apikit:flow-mapping resource="/viaje/{viajeId}" action="delete" flow-ref="borrarViajeId"/>
+        <apikit:flow-mapping resource="/viaje/{viajeId}" action="put" content-type="application/json" flow-ref="modificarViaje"/>
+    </apikit:config>
+    <http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="3031" doc:name="HTTP Listener Configuration"/>
+    <spring:beans>
+        <spring:bean id="viaje" name="viaje" class="java.util.HashMap"/>
+    </spring:beans>
+    <flow name="ViajeApiConsole">
+        <http:listener config-ref="httpListenerConfig" path="/ejercicio/*" doc:name="HTTP"/>
+  <apikit:router config-ref="Router" doc:name="APIkit Router"/> 
+        <exception-strategy ref="exceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="agregaViaje">
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Expression"><![CDATA[Object viajeInstance = new com.mule.support.Viaje();
+viajeInstance.setDestino(payload.get('destino'));
+viajeInstance.setAgencia(payload.get('agencia'));
+viajeInstance.setCosto(payload.get('costo'));
+viajeInstance.setId(payload.get('id'));
+app.registry['viaje'].put(payload.get('id'),viajeInstance);]]></expression-component>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="obtenerViaje">
+        <set-payload value="#[app.registry['viaje'].values()]" doc:name="Set Payload"/>
+        <logger message="#[app]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+(payload filter $.destino == inboundProperties."http.query.params".destino) when inboundProperties."http.query.params".destino != null otherwise payload
+]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="modificarViaje">
+        <set-variable variableName="dataId" value="#[app.registry['viaje'].get(Integer.parseInt(message.inboundProperties['http.uri.params'].get('viajeId')))]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+	"id": flowVars.dataId.id,
+	"agencia":payload.agencia,
+	"costo":payload.costo ,
+	"destino":payload.destino	
+} as :object {class : "com.mule.support.Viaje"}
+]]></dw:set-payload>
+        </dw:transform-message>
+        <expression-component doc:name="Expression"><![CDATA[app.registry['viaje'].put(payload.getId(),payload);]]></expression-component>
+    </flow>
+    <flow name="borrarViajeId">
+        <choice doc:name="Choice">
+            <when expression="#[app.registry['viaje'].containsKey(Integer.parseInt(message.inboundProperties['http.uri.params'].get('viajeId')))]">
+                <expression-component doc:name="Expression"><![CDATA[app.registry['viaje'].remove(Integer.parseInt(message.inboundProperties['http.uri.params'].get('viajeId')));]]></expression-component>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

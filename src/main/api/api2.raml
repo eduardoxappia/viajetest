@@ -1,0 +1,47 @@
+#%RAML 0.8
+title: Viajes API
+baseUri: http://localhost:3031/viaje
+version : 1.0
+/viaje:
+  displayName: Viajes
+  get:
+    description: viajes habilitados.
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include examples/viajeget.json
+            schema: !include schema/viajeschemaget.json
+      400:
+            
+  post:
+    description: agregar un nuevo viaje
+    body:
+      application/json:
+            example: !include examples/viajepost.json
+            schema: !include schema/viajeshcmeapost.json
+    responses:
+      200:
+        description: |
+          El Viaje se creo correctamente.
+      400:    
+  /{viajeId}:
+    displayName: Viaje
+    put:
+      description: Modificacion de viaje por id.
+      body:
+        application/json:
+          example: !include examples/viajeput.json
+          schema: !include schema/viajeschemaput.json
+      responses:
+        200:
+          description: |
+            viaje modificado exitosamente
+        400:
+    delete:
+      description: elimina los registro por id
+      responses:
+        204:
+          description: |
+             viaje eliminado.
+        400:

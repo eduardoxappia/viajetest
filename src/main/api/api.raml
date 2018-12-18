@@ -1,0 +1,27 @@
+#%RAML 0.8
+title: Sample API
+baseUri: http://localhost:8081/test
+version : 1.0
+/test:
+  displayName: test
+  get:
+    description: test.
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include examples/testexam.json
+  post:
+    description: test
+    body:
+      application/json:
+            example: !include examples/testpost.json
+    responses:
+      200:
+        description: |
+          test.
+
+/saleforce:
+  displayName: prueba.
+  
+  

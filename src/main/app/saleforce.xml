@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <sfdc:config name="Salesforce__Basic_Authentication" username="juanpablo@development.com" password="1190Dinda" securityToken="VjCQSKuNhVw6JUyxcGIFW5Ph" doc:name="Salesforce: Basic Authentication"/>
+    <flow name="infoJob">
+        <http:listener config-ref="httpListenerConfig" path="/saleforce" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:job-info config-ref="Salesforce__Basic_Authentication" jobId="7501I00000B3lNHQAZ" doc:name="Salesforce"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="create/job">
+        <http:listener config-ref="httpListenerConfig" path="/salesforces/" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:create-job config-ref="Salesforce__Basic_Authentication" type="CallCenter" operation="insert" doc:name="Salesforce">
+            <sfdc:headers>
+                <sfdc:header key="objecto">objeto</sfdc:header>
+            </sfdc:headers>
+        </sfdc:create-job>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="create/metadata">
+        <http:listener config-ref="httpListenerConfig" path="/saleforce/metadata" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:create-metadata config-ref="Salesforce__Basic_Authentication" type="CustomField" doc:name="Salesforce">
+            <sfdc:objects>
+                <sfdc:object>
+                    <sfdc:inner-object key="type">Text</sfdc:inner-object>
+                    <sfdc:inner-object key="required">false</sfdc:inner-object>
+                    <sfdc:inner-object key="unique">false</sfdc:inner-object>
+                    <sfdc:inner-object key="length">255</sfdc:inner-object>
+                    <sfdc:inner-object key="externalId">false</sfdc:inner-object>
+                    <sfdc:inner-object key="fullName">Account.juanpi__c</sfdc:inner-object>
+                    <sfdc:inner-object key="label">test</sfdc:inner-object>
+                    <sfdc:inner-object key="trackFeedHistory">false</sfdc:inner-object>
+                </sfdc:object>
+            </sfdc:objects>
+        </sfdc:create-metadata>
+        <logger message="#[message]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="saleforce/infoUser">
+        <http:listener config-ref="httpListenerConfig" path="/saleforce/infoUser" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:get-user-info config-ref="Salesforce__Basic_Authentication" doc:name="Salesforce"/>
+    </flow>
+    <flow name="consulta/custofield">
+        <http:listener config-ref="httpListenerConfig" path="/saleforce/listMetada" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:list-metadata config-ref="Salesforce__Basic_Authentication" type="CustomField" doc:name="Salesforce"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="query">
+        <http:listener config-ref="httpListenerConfig" path="/saleforce/query" allowedMethods="POST" doc:name="HTTP"/>
+        <sfdc:query config-ref="Salesforce__Basic_Authentication" query="dsql:select ID, NAME, INDUSTRY, BILLINGCOUNTRY from Account" doc:name="Salesforce"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+</mule>
